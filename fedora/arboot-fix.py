@@ -64,7 +64,7 @@ class NInfo(Gtk.MessageDialog):
         self.parent.set_sensitive(True)
         self.destroy()
 
-def quit(w1=None,w2=None):
+def quit__(w1=None,w2=None):
     subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
     Gtk.main_quit()
 
@@ -196,7 +196,7 @@ class MW(Gtk.Window):
 
 
         self.exit_button=Gtk.Button(label=_("Exit"))
-        self.exit_button.connect("clicked",quit)
+        self.exit_button.connect("clicked",quit__)
         self.hbox8.pack_start(self.exit_button,True,True,0)
 
 
@@ -702,7 +702,7 @@ class MW(Gtk.Window):
 
 def main():
     mw=MW()
-    mw.connect("delete-event", quit)
+    mw.connect("delete-event", quit__)
     mw.show_all()
     Gtk.main()
 
