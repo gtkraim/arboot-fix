@@ -26,10 +26,10 @@ os.makedirs("/mnt/arfedora_fix_boot",exist_ok=True)
 
 subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null",shell=True)
 
-grub_install="grub2-install"            #for other distro chage this ex :grub-install
-grub_mkconfig="grub2-mkconfig"          #for other distro chage this ex :grub-mkconfig
-legacy = "/boot/grub2/grub.cfg"         #for other distro chage this ex :/boot/grub/grub.cfg
-uefi = "/boot/efi/EFI/fedora/grub.cfg"  #for other distro chage this ex :/boot/grub/grub.cfg
+grub_install="grub2-install"            #for other distro change this ex :grub-install
+grub_mkconfig="grub2-mkconfig"          #for other distro change this ex :grub-mkconfig
+legacy = "/boot/grub2/grub.cfg"         #for other distro change this ex :/boot/grub/grub.cfg
+uefi = "/boot/efi/EFI/fedora/grub.cfg"  #for other distro change this ex :/boot/grub/grub.cfg
 
 
 use_internet=True #set False to remove Internet radio button
