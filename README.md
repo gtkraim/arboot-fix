@@ -19,7 +19,7 @@ www.arfedora.com
 
 
 * To Use
- * ``` For Wayland :xhost local:root ```
+ * ``` For Wayland Run xhost local:root ```
  
  * ``` cd && git clone https://github.com/yucefsourani/arboot-fix ```
 
