@@ -18,7 +18,9 @@ www.arfedora.com
 ![Alt text](https://raw.githubusercontent.com/yucefsourani/arboot-fix/master/4.jpg "Screenshot")
 
 
-* To Use 
+* To Use
+ * ``` For Wayland :xhost local:root ```
+ 
  * ``` cd && git clone https://github.com/yucefsourani/arboot-fix ```
 
  * ``` sudo chmod 755 ~/arboot-fix/fedora/arboot-fix.py or su -c "chmod 755 arboot-fix/fedora/arboot-fix.py" ```
