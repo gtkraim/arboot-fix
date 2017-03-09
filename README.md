@@ -17,6 +17,7 @@ www.arfedora.com
 
 ![Alt text](https://raw.githubusercontent.com/yucefsourani/arboot-fix/master/4.jpg "Screenshot")
 
+![Alt text](https://raw.githubusercontent.com/yucefsourani/arboot-fix/master/5.jpg "Screenshot")
 
 * To Use
  * ``` For Wayland Run xhost local:root ```
