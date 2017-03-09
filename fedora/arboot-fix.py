@@ -14,17 +14,21 @@ from gi.repository import Gtk,GdkPixbuf
 project_location=os.path.dirname(os.path.split(os.path.abspath(__file__))[0])
 icon=project_location+"/arboot-fix.png"
 locale=project_location+"/locale"
-print(locale)
+
 gettext.install('arboot-fix',locale)
 
 dirname = os.path.abspath(os.path.dirname(__file__))
 subprocess.call("umount -f -R /mnt 2>/dev/null",shell=True)
+subprocess.call("umount -f -R /media 2>/dev/null",shell=True)
 
 os.makedirs("/mnt/arfedora_fix_boot",exist_ok=True)
 #if not os.path.isdir("/mnt/arfedora_fix_boot"):
  #   os.mkdir("/mnt/arfedora_fix_boot")
 
 subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null",shell=True)
+
+os.makedirs("/media/arfedora_fix_boot",exist_ok=True)
+subprocess.call("umount -R /media/arfedora_fix_boot 2>/dev/null",shell=True)
 
 grub_install="grub2-install"            #for other distro change this ex :grub-install
 grub_mkconfig="grub2-mkconfig"          #for other distro change this ex :grub-mkconfig
@@ -33,24 +37,19 @@ uefi = "/boot/efi/EFI/fedora/grub.cfg"  #for other distro change this ex :/boot/
 
 
 use_internet=True #set False to remove Internet radio button
-befor_chroot_efi_custom_command_if_use_internet_false=[]
-in_chroot_efi_custom_command_if_use_internet_false=[]
-
-#legacy_command=["dnf install  os-prober  grub2 kernel kernel-core kernel-modules kernel-modules-extra  --best -y --setopt=strict=0",
-                #"dnf reinstall   os-prober  grub2 kernel kernel-core kernel-modules kernel-modules-extra --best -y --setopt=strict=0"]
-
-#efi_command=["dnf install  shim os-prober efibootmgr grub2 grub2-efi* kernel kernel-core kernel-modules kernel-modules-extra --best -y --setopt=strict=0", \
-             #"dnf reinstall shim os-prober efibootmgr grub2 grub2-efi* kernel kernel-core kernel-modules kernel-modules-extra --best -y --setopt=strict=0"]
-
-
+b_chroot_efi_custom_command_if_use_internet_false=[] #before chroot
+i_chroot_efi_custom_command_if_use_internet_false=[] #in chroot
 
 legacy_command=["dnf install     os-prober  grub2  --best -y --setopt=strict=0",
-                "dnf reinstall   os-prober  grub2  --best -y --setopt=strict=0"]
+                "dnf reinstall   os-prober  grub2  --best -y --setopt=strict=0"] #run if use_internet True 
 
 efi_command=["dnf install   shim os-prober efibootmgr grub2 grub2-efi*  --best -y --setopt=strict=0", \
-             "dnf reinstall shim os-prober efibootmgr grub2 grub2-efi*  --best -y --setopt=strict=0"]
+             "dnf reinstall shim os-prober efibootmgr grub2 grub2-efi*  --best -y --setopt=strict=0"] #run if use_internet True
 
 
+
+kernel=True #set False to remove kernel radio button
+reinstall_kernel=["no","dnf install kernel kernel-core kernel-modules kernel-modules-extra --best -y --setopt=strict=0","dnf reinstall kernel kernel-core kernel-modules kernel-modules-extra --best -y --setopt=strict=0"] #yes to run $$ no to ignonre $$ keep it no
 
 
 class NInfo(Gtk.MessageDialog):
@@ -66,7 +65,9 @@ class NInfo(Gtk.MessageDialog):
 
 def quit__(w1=None,w2=None):
     subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
+    subprocess.call("umount -R /media/arfedora_fix_boot 2>/dev/null",shell=True)
     Gtk.main_quit()
+    sys.exit()
 
 class MW(Gtk.Window):
     def __init__(self):
@@ -77,17 +78,21 @@ class MW(Gtk.Window):
         self.y_o_n = False
         self.pwd=os.getcwd()
         self.all_par=[]
+        self.all_root_btrfs=self.get_root_parttion_from_btrfs(self.get_all_btrfs())
         self.all_root_par={}
         self.all_boot_par=[]
         self.all_efi_par=[]
         self.__get_all()
+        if self.all_root_btrfs != None:
+            self.all_root_par.update(self.all_root_btrfs)
+
         self.backup_all_boot_par = self.all_boot_par
         self.backup_all_efi_par = self.all_efi_par
         self.internet=False
         if len(self.all_root_par) == 0 :
             NInfo(_("Linux Not Found"),self)
             self.destroy()
-            sys.exit()
+            quit__()
 
         self.notebook=Gtk.Notebook()
         self.add(self.notebook)
@@ -103,15 +108,18 @@ class MW(Gtk.Window):
         self.hbox3 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.hbox4 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.hbox5 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        self.kernel_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.hbox6 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.hbox7 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.hbox8 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.vbox1.pack_start(self.hbox1,True,True,0)
         self.vbox1.pack_start(self.hbox2,True,True,0)
         self.vbox1.pack_start(self.hbox3,True,True,0)
+        self.vbox1.pack_start(self.kernel_box,True,True,0)
         self.vbox1.pack_start(self.hbox4,True,True,0)
         self.vbox1.pack_start(self.hbox5,True,True,0)
-
+        
+        
         self.vbox2=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5)
         self.vbox1.pack_start(self.vbox2,True,True,0)
         self.vbox2.pack_start(self.hbox6,True,True,0)
@@ -158,10 +166,7 @@ class MW(Gtk.Window):
         self.hbox3.pack_start(self.efirefresh, True, True, 0)
         self.efi_target.set_sensitive(False)
         self.efirefresh.set_sensitive(False)
-        if len(self.all_efi_par) != 0:
-            self.efi_target.set_sensitive(True)
-            self.efirefresh.set_sensitive(True)
-            self.__efi_refresh_target()
+
 
         if use_internet:
             self.radio1 = Gtk.RadioButton(label=_("Without Internet"))
@@ -171,13 +176,30 @@ class MW(Gtk.Window):
             self.radio2.set_active(False)
             self.hbox4.pack_start(self.radio1, True, True, 0)
             self.hbox4.pack_start(self.radio2, True, True, 0)
+            
             if len(self.all_efi_par) != 0:
                 if self.efi_target.get_active_text() != "None":
                     self.radio2.set_active(True)
                     self.radio1.set_sensitive(False)
                     self.radio2.set_sensitive(False)
                     self.internet=True
-
+        
+        if len(self.all_efi_par) != 0:
+            self.efi_target.set_sensitive(True)
+            self.efirefresh.set_sensitive(True)
+            self.__efi_refresh_target()
+            
+        if kernel:
+            self.kernel_radio1 = Gtk.RadioButton(label=_("Ignore Reinstall Kernel"))
+            self.kernel_radio1.connect("toggled",self.__kernel_radio1_toggle)
+            self.kernel_radio2 = Gtk.RadioButton.new_with_label_from_widget(self.kernel_radio1,_("Reinstall Kernel"))
+            self.kernel_radio2.connect("toggled", self.__kernel_radio2_toggle)
+            self.radio2.set_active(False)
+            self.kernel_box.pack_start(self.kernel_radio1, True, True, 0)
+            self.kernel_box.pack_start(self.kernel_radio2, True, True, 0)
+            
+            
+            
         self.radio3 = Gtk.RadioButton(label=_("Auto Scan Parttions"))
         self.radio3.connect("toggled",self.__radio3_toggle)
         self.radio4 = Gtk.RadioButton.new_with_label_from_widget(self.radio3,_("Set Manual Parttions"))
@@ -319,17 +341,29 @@ class MW(Gtk.Window):
 
     def legacy_root_fix(self):
         print("\nFix ROOT\n")
-        root=self.all_root_par[self.root_target.get_active_text()]
-        check = subprocess.call("mount  %s /mnt/arfedora_fix_boot 2>/dev/null" % root, shell=True)
-        if check!=0:
-            self.check = "m"
-            return False
+        b = False
+        root=self.all_root_par[self.root_target.get_active_text()][0]
+        if self.all_root_btrfs != None and root in self.all_root_btrfs[self.root_target.get_active_text()]:
+            b = True
+            ids = self.all_root_btrfs[self.root_target.get_active_text()][1]
+        if b:
+            check = subprocess.call("mount  -t btrfs %s -o subvolid=%s /mnt/arfedora_fix_boot 2>/dev/null" %(root,ids), shell=True)
+            if check!=0:
+                self.check = "m"
+                return False
+        else:
+            check = subprocess.call("mount  %s /mnt/arfedora_fix_boot 2>/dev/null" % root, shell=True)
+            if check!=0:
+                self.check = "m"
+                return False
+            
         time.sleep(0.2)
         for i in ["/dev", "/proc", "/sys", "/run", "/dev/pts"]:
             time.sleep(0.2)
             check = subprocess.call("mount  -B %s /mnt/arfedora_fix_boot%s" % (i, i), shell=True)
             if check != 0:
                 self.check = "m"
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
 
         real_root = os.open("/", os.O_RDONLY)
@@ -339,19 +373,42 @@ class MW(Gtk.Window):
             check = subprocess.call(legacy_command[0],shell=True)
             if check != 0:
                 self.check = "i"
+                os.fchdir(real_root)
+                os.chroot(".")
+                os.close(real_root)
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
             check = subprocess.call(legacy_command[1],shell=True)
             if check != 0:
                 self.check = "i"
+                os.fchdir(real_root)
+                os.chroot(".")
+                os.close(real_root)
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
+            if reinstall_kernel[0] == "yes":
+                for i in range(1,len(reinstall_kernel)):
+                    try:
+                        time.sleep(0.2)
+                        subprocess.call(reinstall_kernel[i],shell=True)
+                    except:
+                        continue
 
         check = subprocess.call("%s --force /dev/sda"%grub_install, shell=True)
         if check!=0:
             self.check = "m"
+            os.fchdir(real_root)
+            os.chroot(".")
+            os.close(real_root)
+            subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return  False
         check = subprocess.call("%s -o  %s"%(grub_mkconfig,legacy), shell=True)
         if check!=0:
             self.check = "m"
+            os.fchdir(real_root)
+            os.chroot(".")
+            os.close(real_root)
+            subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return  False
         os.fchdir(real_root)
         os.chroot(".")
@@ -361,24 +418,38 @@ class MW(Gtk.Window):
 
     def legacy_root_with_boot_fix(self):
         print("\nFix ROOT/BOOT\n")
-
-        root=self.all_root_par[self.root_target.get_active_text()]
+        b=False
+        root=self.all_root_par[self.root_target.get_active_text()][0]
+        if self.all_root_btrfs != None and root in self.all_root_btrfs[self.root_target.get_active_text()]:
+            b = True
+            ids = self.all_root_btrfs[self.root_target.get_active_text()][1]
+            
         boot=self.boot_target.get_active_text()
-        check = subprocess.call("mount  %s /mnt/arfedora_fix_boot 2>/dev/null" % root, shell=True)
-        if check!=0:
-            self.check = "m"
-            return False
+        if b:
+            check = subprocess.call("mount  -t btrfs %s -o subvolid=%s /mnt/arfedora_fix_boot 2>/dev/null" %(root,ids), shell=True)
+            if check!=0:
+                self.check = "m"
+                return False
+        else:
+            check = subprocess.call("mount  %s /mnt/arfedora_fix_boot 2>/dev/null" % root, shell=True)
+            if check!=0:
+                self.check = "m"
+                return False
+                
         time.sleep(0.2)
         check = subprocess.call("mount  %s /mnt/arfedora_fix_boot/boot 2>/dev/null" % boot, shell=True)
         if check!=0:
             self.check = "m"
+            subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return False
+                
         time.sleep(0.2)
         for i in ["/dev", "/proc", "/sys", "/run", "/dev/pts"]:
             time.sleep(0.2)
             check = subprocess.call("mount  -B %s /mnt/arfedora_fix_boot%s" % (i, i), shell=True)
             if check != 0:
                 self.check = "m"
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
 
         real_root = os.open("/", os.O_RDONLY)
@@ -389,19 +460,42 @@ class MW(Gtk.Window):
             check = subprocess.call(legacy_command[0],shell=True)
             if check != 0:
                 self.check = "i"
+                os.fchdir(real_root)
+                os.chroot(".")
+                os.close(real_root)
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
             check = subprocess.call(legacy_command[1],shell=True)
             if check != 0:
                 self.check = "i"
+                os.fchdir(real_root)
+                os.chroot(".")
+                os.close(real_root)
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
+            if reinstall_kernel[0] == "yes":
+                for i in range(1,len(reinstall_kernel)):
+                    try:
+                        time.sleep(0.2)
+                        subprocess.call(reinstall_kernel[i],shell=True)
+                    except:
+                        continue
 
         check = subprocess.call("%s --force /dev/sda"%grub_install, shell=True)
         if check!=0:
             self.check = "m"
+            os.fchdir(real_root)
+            os.chroot(".")
+            os.close(real_root)
+            subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return False
         check = subprocess.call("%s -o  %s"%(grub_mkconfig,legacy), shell=True)
         if check!=0:
             self.check = "m"
+            os.fchdir(real_root)
+            os.chroot(".")
+            os.close(real_root)
+            subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return False
         os.fchdir(real_root)
         os.chroot(".")
@@ -411,16 +505,28 @@ class MW(Gtk.Window):
 
     def efi_root_fix(self):
         print("\nFix ROOT/EFI\n")
-        root=self.all_root_par[self.root_target.get_active_text()]
+        root=self.all_root_par[self.root_target.get_active_text()][0]
+        b=False
+        if self.all_root_btrfs != None and root in self.all_root_btrfs[self.root_target.get_active_text()]:
+            b = True
+            ids = self.all_root_btrfs[self.root_target.get_active_text()][1]
+            
         efi=self.efi_target.get_active_text()
-        check = subprocess.call("mount  %s /mnt/arfedora_fix_boot 2>/dev/null" % root, shell=True)
-        if check!=0:
-            self.check = "m"
-            return  False
+        if b:
+            check = subprocess.call("mount  -t btrfs %s -o subvolid=%s /mnt/arfedora_fix_boot 2>/dev/null" %(root,ids), shell=True)
+            if check!=0:
+                self.check = "m"
+                return False
+        else:
+            check = subprocess.call("mount  %s /mnt/arfedora_fix_boot 2>/dev/null" % root, shell=True)
+            if check!=0:
+                self.check = "m"
+                return False
         time.sleep(0.2)
         check = subprocess.call("mount  %s /mnt/arfedora_fix_boot/boot/efi 2>/dev/null" % efi, shell=True)
         if check!=0:
             self.check = "m"
+            subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return  False
         time.sleep(0.2)
         for i in ["/dev", "/proc", "/sys", "/run", "/dev/pts"]:
@@ -428,15 +534,17 @@ class MW(Gtk.Window):
             check = subprocess.call("mount  -B %s /mnt/arfedora_fix_boot%s" % (i, i), shell=True)
             if check != 0:
                 self.check = "m"
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
 
         if not use_internet:
-            if len(in_chroot_efi_custom_command_if_use_internet_false) != 0:
-                for c in in_chroot_efi_custom_command_if_use_internet_false:
+            if len(b_chroot_efi_custom_command_if_use_internet_false) != 0:
+                for c in b_chroot_efi_custom_command_if_use_internet_false:
                     time.sleep(0.5)
                     check = subprocess.call("%s" % i, shell=True)
                     if check != 0:
                         self.check = "m"
+                        subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                         return False
 
 
@@ -447,23 +555,46 @@ class MW(Gtk.Window):
             check = subprocess.call(efi_command[0],shell=True)
             if check != 0:
                 self.check = "i"
+                os.fchdir(real_root)
+                os.chroot(".")
+                os.close(real_root)
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
             check= subprocess.call(efi_command[1],shell=True)
             if check != 0:
                 self.check = "i"
+                os.fchdir(real_root)
+                os.chroot(".")
+                os.close(real_root)
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
+            if reinstall_kernel[0] == "yes":
+                for i in range(1,len(reinstall_kernel)):
+                    try:
+                        time.sleep(0.2)
+                        subprocess.call(reinstall_kernel[i],shell=True)
+                    except:
+                        continue
         else:
-            if len(befor_chroot_efi_custom_command_if_use_internet_false) != 0:
-                for c in befor_chroot_efi_custom_command_if_use_internet_false:
+            if len(i_chroot_efi_custom_command_if_use_internet_false) != 0:
+                for c in i_chroot_efi_custom_command_if_use_internet_false:
                     time.sleep(0.5)
                     check = subprocess.call("%s"%i, shell=True)
                     if check != 0:
                         self.check = "m"
+                        os.fchdir(real_root)
+                        os.chroot(".")
+                        os.close(real_root)
+                        subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                         return False
 
         check = subprocess.call("%s  -o %s"%(grub_mkconfig,uefi), shell=True)
         if check!=0:
             self.check = "m"
+            os.fchdir(real_root)
+            os.chroot(".")
+            os.close(real_root)
+            subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return  False
         os.fchdir(real_root)
         os.chroot(".")
@@ -474,38 +605,56 @@ class MW(Gtk.Window):
 
     def efi_root_with_boot_fix(self):
         print("\nFix ROOT/BOOT/EFI\n")
-        root=self.all_root_par[self.root_target.get_active_text()]
+        root=self.all_root_par[self.root_target.get_active_text()][0]
+        b=False
+        if self.all_root_btrfs != None and root in self.all_root_btrfs[self.root_target.get_active_text()]:
+            b = True
+            ids = self.all_root_btrfs[self.root_target.get_active_text()][1]
+
         efi=self.efi_target.get_active_text()
         boot=self.boot_target.get_active_text()
-        check = subprocess.call("mount  %s /mnt/arfedora_fix_boot 2>/dev/null" % root, shell=True)
-        if check!=0:
-            self.check = "m"
-            return  False
+        if b:
+            check = subprocess.call("mount  -t btrfs %s -o subvolid=%s /mnt/arfedora_fix_boot 2>/dev/null" %(root,ids), shell=True)
+            if check!=0:
+                self.check = "m"
+                return False
+        else:
+            check = subprocess.call("mount  %s /mnt/arfedora_fix_boot 2>/dev/null" % root, shell=True)
+            if check!=0:
+                self.check = "m"
+                return False
+        
         time.sleep(0.2)
         check = subprocess.call("mount  %s /mnt/arfedora_fix_boot/boot 2>/dev/null" % boot, shell=True)
         if check!=0:
             self.check = "m"
-            return  False
+            subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
+            return False
+        
         time.sleep(0.2)
         check = subprocess.call("mount  %s /mnt/arfedora_fix_boot/boot/efi 2>/dev/null" % efi, shell=True)
         if check!=0:
             self.check = "m"
+            subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return  False
+                
         time.sleep(0.2)
         for i in ["/dev", "/proc", "/sys", "/run", "/dev/pts"]:
             time.sleep(0.2)
             check = subprocess.call("mount  -B %s /mnt/arfedora_fix_boot%s" % (i, i), shell=True)
             if check != 0:
                 self.check = "m"
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
 
         if not use_internet:
-            if len(in_chroot_efi_custom_command_if_use_internet_false) != 0:
-                for c in in_chroot_efi_custom_command_if_use_internet_false:
+            if len(b_chroot_efi_custom_command_if_use_internet_false) != 0:
+                for c in b_chroot_efi_custom_command_if_use_internet_false:
                     time.sleep(0.5)
                     check = subprocess.call("%s" % i, shell=True)
                     if check != 0:
                         self.check = "m"
+                        subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                         return False
 
         real_root = os.open("/", os.O_RDONLY)
@@ -515,23 +664,47 @@ class MW(Gtk.Window):
             check = subprocess.call(efi_command[0],shell=True)
             if check != 0:
                 self.check = "i"
+                os.fchdir(real_root)
+                os.chroot(".")
+                os.close(real_root)
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
             check = subprocess.call(efi_command[1],shell=True)
             if check != 0:
                 self.check = "i"
+                os.fchdir(real_root)
+                os.chroot(".")
+                os.close(real_root)
+                subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                 return False
+            if reinstall_kernel[0] == "yes":
+                for i in range(1,len(reinstall_kernel)):
+                    try:
+                        time.sleep(0.2)
+                        subprocess.call(reinstall_kernel[i],shell=True)
+                    except:
+                        continue
+                        
         else:
-            if len(befor_chroot_efi_custom_command_if_use_internet_false) != 0:
-                for c in befor_chroot_efi_custom_command_if_use_internet_false:
+            if len(i_chroot_efi_custom_command_if_use_internet_false) != 0:
+                for c in i_chroot_efi_custom_command_if_use_internet_false:
                     time.sleep(0.5)
                     check = subprocess.call("%s" % i, shell=True)
                     if check != 0:
                         self.check = "m"
+                        os.fchdir(real_root)
+                        os.chroot(".")
+                        os.close(real_root)
+                        subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
                         return False
 
         check = subprocess.call("%s  -o %s"%(grub_mkconfig,uefi), shell=True)
         if check!=0:
             self.check = "m"
+            os.fchdir(real_root)
+            os.chroot(".")
+            os.close(real_root)
+            subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return  False
         os.fchdir(real_root)
         os.chroot(".")
@@ -583,7 +756,7 @@ class MW(Gtk.Window):
             subprocess.call("mount  %s /mnt/arfedora_fix_boot 2>/dev/null" % i, shell=True)
             if os.path.isfile("/mnt/arfedora_fix_boot/etc/os-release"):
                 print (i)
-                result.setdefault("%s ==> %s" % (i, self.get_distro_name("/mnt/arfedora_fix_boot/etc/os-release")), i)
+                result.setdefault("%s ==> %s" % (i, self.get_distro_name("/mnt/arfedora_fix_boot/etc/os-release")),[i] )
             time.sleep(0.3)
             subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
         self.all_root_par=result
@@ -627,6 +800,7 @@ class MW(Gtk.Window):
         print ("Internet is : ")
         print (self.internet)
 
+
     def __radio2_toggle(self,b=None):
         self.internet=True
         print ("Internet is : ")
@@ -645,13 +819,16 @@ class MW(Gtk.Window):
         if len(self.all_efi_par) != 0:
             self.__efi_refresh_target()
         else:
+            self.use_internet = False
             self.efi_target.get_model().clear()
             self.efi_target.set_sensitive(False)
             self.efirefresh.set_sensitive(False)
 
         if use_internet:
-            self.radio1.set_sensitive(True)
-            self.radio2.set_sensitive(True)
+            if len(self.all_efi_par) == 0 or self.efi_target.get_active_text() ==None:
+                self.radio1.set_sensitive(True)
+                self.radio2.set_sensitive(True)
+        
 
     def __radio4_toggle(self,b=None):
         self.all_boot_par=self.all_par
@@ -663,12 +840,21 @@ class MW(Gtk.Window):
         self.__boot_refresh_target()
         self.__efi_refresh_target()
 
+    def __kernel_radio1_toggle(self,b):
+        reinstall_kernel[0]="no"
+
+        
+    def __kernel_radio2_toggle(self,b):
+        reinstall_kernel[0]="yes"
+
+
+
     def __about(self,b):
         authors = ["Youssef Sourani <youssef.m.sourani@gmail.com>"]
         about = Gtk.AboutDialog()
         about.set_transient_for(self)
         about.set_program_name("Arboot fix")
-        about.set_version("0.1beta")
+        about.set_version("0.2beta")
         about.set_copyright("Copyright © 2017 Youssef Sourani")
         about.set_comments(_("Arboot is a simple tool for fix grub bootloader"))
         about.set_website("http://www.arfedora.blogspot.com")
@@ -699,6 +885,59 @@ class MW(Gtk.Window):
             return False
 
 
+    def get_root_parttion_from_btrfs(self,l):
+        if len(l)!= 0:
+            result={}
+            for i in l:
+                time.sleep(0.5)
+                try:
+                    subprocess.call("mount %s -o subvolid=%s /media/arfedora_fix_boot"%(i[0],i[1]),shell=True)
+                    result.setdefault("Btrfs %s ==> %s" % (i[0], self.get_distro_name("/media/arfedora_fix_boot/etc/os-release")),[i[0],i[1]])
+                except:
+                    subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
+                    continue
+                finally:
+                    subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
+
+            return  result
+
+    def get_all_btrfs(self):
+        subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
+        result = []
+        finally_result = []
+        a = subprocess.check_output("btrfs filesystem show", shell=True).decode('utf-8').strip().split("\n")
+        for i in a:
+            try:
+                pp = i.strip().split()
+                result.append(pp[pp.index("path")+1])
+            except:
+                continue
+
+        for p in result:
+            try:
+                time.sleep(0.5)
+                subprocess.call("mount %s  /media/arfedora_fix_boot"%p,shell=True)
+                for f in os.listdir("/media/arfedora_fix_boot"):
+                    if os.path.isfile("/media/arfedora_fix_boot/"+f+"/etc/os-release"):
+                        b = subprocess.check_output("btrfs subvolume list /media/arfedora_fix_boot", shell=True).decode('utf-8').strip().split("\n")
+                        for i in b[:-1]:
+                            try:
+                                ppp = i.strip().split()
+                                if ppp[ppp.index(ppp[1])+7]==f:
+                                    finally_result.append([p,ppp[1]])
+
+
+                            except:
+                                continue
+                        
+            except:
+                subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
+                continue
+
+            finally:
+                subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
+
+        return finally_result
 
 def main():
     mw=MW()
