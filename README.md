@@ -15,7 +15,7 @@ www.arfedora.com
 
 ![Alt text](https://raw.githubusercontent.com/yucefsourani/arboot-fix/master/3.jpg "Screenshot")
 
-![Alt text](https://raw.githubusercontent.com/yucefsourani/arboot-fix/master/4.jpg "Screenshot")
+![Alt text](https://raw.githubusercontent.com/yucefsourani/arboot-fix/master/6.jpg "Screenshot")
 
 ![Alt text](https://raw.githubusercontent.com/yucefsourani/arboot-fix/master/5.jpg "Screenshot")
 
