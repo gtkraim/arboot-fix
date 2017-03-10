@@ -52,6 +52,8 @@ kernel=True #set False to remove kernel radio button
 reinstall_kernel=["no","dnf install kernel kernel-core kernel-modules kernel-modules-extra --best -y --setopt=strict=0","dnf reinstall kernel kernel-core kernel-modules kernel-modules-extra --best -y --setopt=strict=0"] #yes to run $$ no to ignonre $$ keep it no
 
 
+
+
 class NInfo(Gtk.MessageDialog):
     def __init__(self,message,parent=None):
         Gtk.MessageDialog.__init__(self,parent,1,Gtk.MessageType.INFO,Gtk.ButtonsType.OK,message)
@@ -732,9 +734,18 @@ class MW(Gtk.Window):
     def get_all_parrtions(self):
         all_parttions = subprocess.check_output("lsblk -l -n -p -o  \"NAME\"", shell=True).decode('utf-8').split("\n")
         result = []
+        try:
+            real_live=subprocess.check_output("df -h |grep -i /run/ini",shell=True).decode("utf-8").strip().split()[0][:-1]
+            print (real_live)
+        except:
+            real_live=None
+            
         for i in all_parttions:
             if len(i) == 0:
                 continue
+            if real_live!=None:
+                if i.startswith(real_live):
+                    continue
             if i.startswith("/dev/") and len(i) > 8 and not i.startswith("/dev/sr") and not i.startswith("/dev/mapper/live") and not i.startswith("/dev/loop"):
                 try:
                     time.sleep(0.3)
@@ -854,7 +865,7 @@ class MW(Gtk.Window):
         about = Gtk.AboutDialog()
         about.set_transient_for(self)
         about.set_program_name("Arboot fix")
-        about.set_version("0.2beta")
+        about.set_version("0.3")
         about.set_copyright("Copyright © 2017 Youssef Sourani")
         about.set_comments(_("Arboot is a simple tool for fix grub bootloader"))
         about.set_website("http://www.arfedora.blogspot.com")
