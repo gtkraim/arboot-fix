@@ -935,7 +935,7 @@ class MW(Gtk.Window):
         about = Gtk.AboutDialog()
         about.set_transient_for(self)
         about.set_program_name("Arboot fix")
-        about.set_version("0.4beta")
+        about.set_version("0.4")
         about.set_copyright("Copyright © 2017 Youssef Sourani")
         about.set_comments(_("Arboot is a simple tool for fix grub bootloader"))
         about.set_website("http://www.arfedora.blogspot.com")
