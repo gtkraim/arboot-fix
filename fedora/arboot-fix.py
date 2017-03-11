@@ -396,7 +396,8 @@ class MW(Gtk.Window):
             if check!=0:
                 self.check = "m"
                 return False
-            
+
+        os.makedirs("/mnt/arfedora_fix_boot/boot",exist_ok=True)
         time.sleep(0.2)
         for i in ["/dev", "/proc", "/sys", "/run", "/dev/pts"]:
             time.sleep(0.2)
@@ -433,7 +434,7 @@ class MW(Gtk.Window):
                         subprocess.call(reinstall_kernel[i],shell=True)
                     except:
                         continue
-        print ("in function : "+self.install_boot_target.get_active_text())
+
         check = subprocess.call("%s --force %s"%(grub_install,self.install_boot_target.get_active_text()), shell=True)
         if check!=0:
             self.check = "m"
@@ -475,7 +476,8 @@ class MW(Gtk.Window):
             if check!=0:
                 self.check = "m"
                 return False
-                
+
+        os.makedirs("/mnt/arfedora_fix_boot/boot",exist_ok=True)
         time.sleep(0.2)
         check = subprocess.call("mount  %s /mnt/arfedora_fix_boot/boot 2>/dev/null" % boot, shell=True)
         if check!=0:
@@ -520,7 +522,7 @@ class MW(Gtk.Window):
                         subprocess.call(reinstall_kernel[i],shell=True)
                     except:
                         continue
-        print ("in function : "+self.install_boot_target.get_active_text())
+
         check = subprocess.call("%s --force  %s"%(grub_install,self.install_boot_target.get_active_text()), shell=True)
         if check!=0:
             self.check = "m"
@@ -562,6 +564,9 @@ class MW(Gtk.Window):
             if check!=0:
                 self.check = "m"
                 return False
+
+        os.makedirs("/mnt/arfedora_fix_boot/boot",exist_ok=True)
+        os.makedirs("/mnt/arfedora_fix_boot/boot/efi",exist_ok=True)
         time.sleep(0.2)
         check = subprocess.call("mount  %s /mnt/arfedora_fix_boot/boot/efi 2>/dev/null" % efi, shell=True)
         if check!=0:
@@ -663,7 +668,9 @@ class MW(Gtk.Window):
             if check!=0:
                 self.check = "m"
                 return False
-        
+
+        os.makedirs("/mnt/arfedora_fix_boot/boot",exist_ok=True)
+        os.makedirs("/mnt/arfedora_fix_boot/boot/efi",exist_ok=True)
         time.sleep(0.2)
         check = subprocess.call("mount  %s /mnt/arfedora_fix_boot/boot 2>/dev/null" % boot, shell=True)
         if check!=0:
@@ -800,7 +807,6 @@ class MW(Gtk.Window):
         result = []
         try:
             real_live=subprocess.check_output("df -h |grep -i /run/ini",shell=True).decode("utf-8").strip().split()[0][:-1]
-            print (real_live)
         except:
             real_live=None
             
