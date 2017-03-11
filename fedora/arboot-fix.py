@@ -78,7 +78,6 @@ class MW(Gtk.Window):
         self.set_title(_("Arboot Fix"))
         self.check="d"
         self.y_o_n = False
-        self.pwd=os.getcwd()
         self.all_par=[]
         self.all_root_btrfs=self.get_root_parttion_from_btrfs(self.get_all_btrfs())
         self.all_root_par={}
@@ -91,11 +90,13 @@ class MW(Gtk.Window):
         self.backup_all_boot_par = self.all_boot_par
         self.backup_all_efi_par = self.all_efi_par
         self.internet=False
+
         if len(self.all_root_par) == 0 :
             NInfo(_("Linux Not Found"),self)
             self.destroy()
             quit__()
-
+        
+        
         self.notebook=Gtk.Notebook()
         self.add(self.notebook)
         self.page1=Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -104,7 +105,7 @@ class MW(Gtk.Window):
         self.notebook.append_page(self.page1,self.label1)
         self.vbox1=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=20)
         self.page1.pack_start(self.vbox1,True,True,0)
-
+        self.hbox0 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.hbox1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.hbox2 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.hbox3 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
@@ -114,6 +115,7 @@ class MW(Gtk.Window):
         self.hbox6 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.hbox7 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         self.hbox8 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        self.vbox1.pack_start(self.hbox0,True,True,0)
         self.vbox1.pack_start(self.hbox1,True,True,0)
         self.vbox1.pack_start(self.hbox2,True,True,0)
         self.vbox1.pack_start(self.hbox3,True,True,0)
@@ -128,7 +130,20 @@ class MW(Gtk.Window):
         self.vbox2.pack_start(self.hbox7,True,True,0)
         self.vbox2.pack_start(self.hbox8,True,True,0)
 
-        self.rootlabel = Gtk.Label(_('Root Target:'))
+        self.install_boot_target_label = Gtk.Label(_('Install BootLoader on:'))
+        self.hbox0.pack_start(self.install_boot_target_label, True, True, 0)
+        self.install_boot_target = Gtk.ComboBoxText(tooltip_text =_("Select Target Drive & Default = /dev/sda"))
+        self.__set_all_drive_in_install_boot_target()
+        self.install_boot_target.props.width_request = 510
+        self.hbox0.pack_start(self.install_boot_target,True,True,0)
+        self.install_boot_target.set_sensitive(False)
+        self.install_boot_edit=Gtk.Button(label="Edit",tooltip_text=_("Edit Target Drive"))
+        self.install_boot_edit.connect('clicked',self.__on_edit_button_clicked )
+        self.hbox0.pack_start(self.install_boot_edit, True, True, 0)
+
+        
+        
+        self.rootlabel = Gtk.Label(_('Select  Root Target    :'))
         self.hbox1.pack_start(self.rootlabel, True, True, 0)
         self.root_target = Gtk.ComboBoxText(tooltip_text =_("Select Parttion"))
         self.root_target.props.width_request = 510
@@ -140,7 +155,7 @@ class MW(Gtk.Window):
         self.__root_refresh_target()
 
 
-        self.bootlabel = Gtk.Label(_('Boot Target:'))
+        self.bootlabel = Gtk.Label(_('Select  Boot Target    :'))
         self.hbox2.pack_start(self.bootlabel, True, True, 0)
         self.boot_target = Gtk.ComboBoxText(tooltip_text =_("Select Parttion"))
         self.boot_target.props.width_request = 510
@@ -156,7 +171,7 @@ class MW(Gtk.Window):
             self.__boot_refresh_target()
 
 
-        self.efilabel = Gtk.Label(_('EFI   Target:'))
+        self.efilabel = Gtk.Label(_('Select  EFI   Target    :'))
         self.hbox3.pack_start(self.efilabel, True, True, 0)
         self.efi_target = Gtk.ComboBoxText(tooltip_text =_("Select Parttion"))
         if use_internet:
@@ -418,8 +433,8 @@ class MW(Gtk.Window):
                         subprocess.call(reinstall_kernel[i],shell=True)
                     except:
                         continue
-
-        check = subprocess.call("%s --force /dev/sda"%grub_install, shell=True)
+        print ("in function : "+self.install_boot_target.get_active_text())
+        check = subprocess.call("%s --force %s"%(grub_install,self.install_boot_target.get_active_text()), shell=True)
         if check!=0:
             self.check = "m"
             os.fchdir(real_root)
@@ -505,8 +520,8 @@ class MW(Gtk.Window):
                         subprocess.call(reinstall_kernel[i],shell=True)
                     except:
                         continue
-
-        check = subprocess.call("%s --force /dev/sda"%grub_install, shell=True)
+        print ("in function : "+self.install_boot_target.get_active_text())
+        check = subprocess.call("%s --force  %s"%(grub_install,self.install_boot_target.get_active_text()), shell=True)
         if check!=0:
             self.check = "m"
             os.fchdir(real_root)
@@ -753,7 +768,33 @@ class MW(Gtk.Window):
             for line in myfile.readlines():
                 if line.startswith("ID"):
                     return line.split("=")[1].strip()
+                    
+    def __set_all_drive_in_install_boot_target(self):
+        result=[]
+        for i in self.all_par:
+            if i.startswith("/dev/sd"):
+                if i[:-1] not in result:
+                    result.append(i[:-1])
+        
+        count=0
+        for i in result:
+            self.install_boot_target.append_text(i)
+            count+=1
+            
+        while True:
+            r = random.choice(range(count))
+            self.install_boot_target.set_active(r)
+            if self.install_boot_target.get_active_text() == "/dev/sda":
+                break
+                
 
+                
+    def __on_edit_button_clicked(self,b):
+        if self.install_boot_target.get_sensitive():
+            self.install_boot_target.set_sensitive(False)
+        else:
+            self.install_boot_target.set_sensitive(True)
+        
     def get_all_parrtions(self):
         all_parttions = subprocess.check_output("lsblk -l -n -p -o  \"NAME\"", shell=True).decode('utf-8').split("\n")
         result = []
@@ -888,7 +929,7 @@ class MW(Gtk.Window):
         about = Gtk.AboutDialog()
         about.set_transient_for(self)
         about.set_program_name("Arboot fix")
-        about.set_version("0.3")
+        about.set_version("0.4beta")
         about.set_copyright("Copyright © 2017 Youssef Sourani")
         about.set_comments(_("Arboot is a simple tool for fix grub bootloader"))
         about.set_website("http://www.arfedora.blogspot.com")
