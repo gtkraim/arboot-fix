@@ -156,7 +156,7 @@ class MW(Gtk.Window):
             self.__boot_refresh_target()
 
 
-        self.efilabel = Gtk.Label(_('EFI  Target:'))
+        self.efilabel = Gtk.Label(_('EFI   Target:'))
         self.hbox3.pack_start(self.efilabel, True, True, 0)
         self.efi_target = Gtk.ComboBoxText(tooltip_text =_("Select Parttion"))
         if use_internet:
@@ -253,6 +253,10 @@ class MW(Gtk.Window):
                 t1.start()
                 t1.join()
             else:
+                if self.boot_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
+                    NInfo(_("Error Root Target == Boot Target"),self)
+                    return
+             
                 t1 = threading.Thread(target=self.legacy_root_with_boot_fix)
                 t1.start()
                 t1.join()
@@ -263,6 +267,9 @@ class MW(Gtk.Window):
                 t1.start()
                 t1.join()
             else:
+                if self.efi_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
+                    NInfo(_("Error Root Target == EFI Target"),self)
+                    return
                 t1 = threading.Thread(target=self.efi_root_fix)
                 t1.start()
                 t1.join()
@@ -274,15 +281,31 @@ class MW(Gtk.Window):
                 t1.join()
 
             elif self.boot_target.get_active_text() == "None":
+                if self.efi_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
+                    NInfo(_("Error Root Target == EFI Target"),self)
+                    return
                 t1 = threading.Thread(target=self.efi_root_fix)
                 t1.start()
                 t1.join()
 
             elif self.efi_target.get_active_text() == "None":
+                if self.boot_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
+                    NInfo(_("Error Root Target == Boot Target"),self)
+                    return
                 t1 = threading.Thread(target=self.legacy_root_with_boot_fix)
                 t1.start()
                 t1.join()
             else:
+                if self.boot_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
+                    NInfo(_("Error Root Target == Boot Target"),self)
+                    return
+                if self.efi_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
+                    NInfo(_("Error Root Target == EFI Target"),self)
+                    return
+
+                if self.efi_target.get_active_text().split()[0] == self.boot_target.get_active_text().split()[0]:
+                    NInfo(_("Error Boot Target == EFI Target"),self)
+                    return    
                 t1 = threading.Thread(target=self.efi_root_with_boot_fix)
                 t1.start()
                 t1.join()
