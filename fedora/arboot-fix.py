@@ -973,7 +973,7 @@ class MW(Gtk.Window):
                 time.sleep(0.5)
                 try:
                     subprocess.call("mount %s -o subvolid=%s /media/arfedora_fix_boot"%(i[0],i[1]),shell=True)
-                    result.setdefault("Btrfs %s ==> %s" % (i[0], self.get_distro_name("/media/arfedora_fix_boot/etc/os-release")),[i[0],i[1]])
+                    result.setdefault("%s Btrfs ==> %s" % (i[0], self.get_distro_name("/media/arfedora_fix_boot/etc/os-release")),[i[0],i[1]])
                 except:
                     subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
                     continue
