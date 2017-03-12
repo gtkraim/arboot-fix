@@ -565,14 +565,15 @@ class MW(Gtk.Window):
                 self.check = "m"
                 return False
 
-        os.makedirs("/mnt/arfedora_fix_boot/boot",exist_ok=True)
         os.makedirs("/mnt/arfedora_fix_boot/boot/efi",exist_ok=True)
+        
         time.sleep(0.2)
         check = subprocess.call("mount  %s /mnt/arfedora_fix_boot/boot/efi 2>/dev/null" % efi, shell=True)
         if check!=0:
             self.check = "m"
             subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return  False
+           
         time.sleep(0.2)
         for i in ["/dev", "/proc", "/sys", "/run", "/dev/pts"]:
             time.sleep(0.2)
@@ -670,14 +671,15 @@ class MW(Gtk.Window):
                 return False
 
         os.makedirs("/mnt/arfedora_fix_boot/boot",exist_ok=True)
-        os.makedirs("/mnt/arfedora_fix_boot/boot/efi",exist_ok=True)
+        
         time.sleep(0.2)
         check = subprocess.call("mount  %s /mnt/arfedora_fix_boot/boot 2>/dev/null" % boot, shell=True)
         if check!=0:
             self.check = "m"
             subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
             return False
-        
+           
+        os.makedirs("/mnt/arfedora_fix_boot/boot/efi",exist_ok=True)
         time.sleep(0.2)
         check = subprocess.call("mount  %s /mnt/arfedora_fix_boot/boot/efi 2>/dev/null" % efi, shell=True)
         if check!=0:
