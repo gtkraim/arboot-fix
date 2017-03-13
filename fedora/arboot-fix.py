@@ -30,6 +30,9 @@ subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null",shell=True)
 os.makedirs("/media/arfedora_fix_boot",exist_ok=True)
 subprocess.call("umount -R /media/arfedora_fix_boot 2>/dev/null",shell=True)
 
+os.makedirs("/media/arfedora_fix_btrfs",exist_ok=True)
+subprocess.call("umount -R /media/arfedora_fix_btrfs 2>/dev/null",shell=True)
+
 grub_install="grub2-install"            #for other distro change this ex :grub-install
 grub_mkconfig="grub2-mkconfig"          #for other distro change this ex :grub-mkconfig
 legacy = "/boot/grub2/grub.cfg"         #for other distro change this ex :/boot/grub/grub.cfg
@@ -68,6 +71,7 @@ class NInfo(Gtk.MessageDialog):
 def quit__(w1=None,w2=None):
     subprocess.call("umount -f -R /mnt/arfedora_fix_boot 2>/dev/null", shell=True)
     subprocess.call("umount -R /media/arfedora_fix_boot 2>/dev/null",shell=True)
+    subprocess.call("umount -R /media/arfedora_fix_btrfs 2>/dev/null",shell=True)
     Gtk.main_quit()
     sys.exit()
 
@@ -972,19 +976,28 @@ class MW(Gtk.Window):
         if len(l)!= 0:
             result={}
             for i in l:
-                time.sleep(0.5)
+                time.sleep(2)
+                subprocess.call("umount -R  /media/arfedora_fix_btrfs 2>/dev/null",shell=True)
                 try:
-                    subprocess.call("mount %s -o subvolid=%s /media/arfedora_fix_boot"%(i[0],i[1]),shell=True)
-                    result.setdefault("%s ==> %s" % (i[0], self.get_distro_name("/media/arfedora_fix_boot/etc/os-release")),[i[0],i[1]])
+                    time.sleep(2)
+                    subprocess.call("mount %s -o subvolid=%s /media/arfedora_fix_btrfs"%(i[0],i[1]),shell=True)
+                    result.setdefault("%s ==> %s" % (i[0], self.get_distro_name("/media/arfedora_fix_btrfs/etc/os-release")),[i[0],i[1]])
+                    print (i[0])
                 except:
-                    subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
+                    time.sleep(2)
+                    subprocess.call("umount -R  /media/arfedora_fix_btrfs 2>/dev/null",shell=True)
                     continue
-                finally:
-                    subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
 
+            time.sleep(2)
+            subprocess.call("umount -R  /media/arfedora_fix_btrfs 2>/dev/null",shell=True)
             return  result
+            
+        time.sleep(0.5)
+        subprocess.call("umount -R  /media/arfedora_fix_btrfs 2>/dev/null",shell=True)
 
     def get_all_btrfs(self):
+        print ("Please Wait...\n")
+        print ("\nGet All Root From Btrfs Parttions :")
         subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
         result = []
         finally_result = []
@@ -992,33 +1005,39 @@ class MW(Gtk.Window):
         for i in a:
             try:
                 pp = i.strip().split()
-                result.append(pp[pp.index("path")+1])
-            except:
+                for j in pp:
+                    
+                    if j=="path":
+                        result.append(pp[pp.index(j)+1])
+            except :
                 continue
 
         for p in result:
+            time.sleep(2)
+            subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
             try:
-                time.sleep(0.5)
+                time.sleep(2)
                 subprocess.call("mount %s  /media/arfedora_fix_boot"%p,shell=True)
-                for f in os.listdir("/media/arfedora_fix_boot"):
-                    if os.path.isfile("/media/arfedora_fix_boot/"+f+"/etc/os-release"):
-                        b = subprocess.check_output("btrfs subvolume list /media/arfedora_fix_boot", shell=True).decode('utf-8').strip().split("\n")
-                        for i in b[:-1]:
-                            try:
-                                ppp = i.strip().split()
-                                if ppp[ppp.index(ppp[1])+7]==f:
-                                    finally_result.append([p,ppp[1]])
-
-
-                            except:
-                                continue
-                        
             except:
-                subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
                 continue
 
-            finally:
-                subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
+            for f in os.listdir("/media/arfedora_fix_boot"):
+                if os.path.isfile("/media/arfedora_fix_boot/"+f+"/etc/os-release"):
+                    b = subprocess.check_output("btrfs subvolume list /media/arfedora_fix_boot", shell=True).decode('utf-8').strip().split("\n")
+                    for i in b:
+                        try:
+                            ppp = i.strip().split()
+                            if ppp[ppp.index(ppp[1])+7]==f:
+                                finally_result.append([p,ppp[1]])
+
+
+                        except Exception as e:
+                            print ("e = "+ e)
+                            continue
+
+            
+        time.sleep(2)
+        subprocess.call("umount -R  /media/arfedora_fix_boot 2>/dev/null",shell=True)
 
         return finally_result
 
