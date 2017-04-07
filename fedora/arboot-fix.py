@@ -6,10 +6,11 @@ import sys
 import time
 import gettext
 import random
+import multiprocessing
 import threading
 import gi
 gi.require_version("Gtk","3.0")
-from gi.repository import Gtk,GdkPixbuf
+from gi.repository import Gtk,GdkPixbuf,GLib
 
 project_location=os.path.dirname(os.path.split(os.path.abspath(__file__))[0])
 icon=project_location+"/arboot-fix.png"
@@ -55,6 +56,42 @@ kernel=True #set False to remove kernel radio button
 reinstall_kernel=["no","dnf install kernel kernel-core kernel-modules kernel-modules-extra --best -y --setopt=strict=0","dnf reinstall kernel kernel-core kernel-modules kernel-modules-extra --best -y --setopt=strict=0"] #yes to run $$ no to ignonre $$ keep it no
 
 
+class Wait(Gtk.Window):
+    def __init__(self,title="Arboot Fix",msg="Please Wait",deletable=False,window_to_change_sensitive=False):
+        Gtk.Window.__init__(self,title=title,deletable=deletable,window_position=Gtk.WindowPosition.CENTER)
+        self.msg=msg
+        self.window_to_change_sensitive=window_to_change_sensitive
+        if  self.window_to_change_sensitive==True:
+            self.window_to_change_sensitive.set_sensitive(False)
+        self.p=Gtk.ProgressBar()
+        self.p.set_text(self.msg)
+        self.p.set_show_text(self.msg)
+        self.add(self.p)
+
+
+
+
+    def __pulse(self):
+        self.p.pulse()
+        return True
+
+    def __loading_progressbar(self):
+        self.source_id = GLib.timeout_add(100, self.__pulse)
+    
+    def start_(self):
+        self.__loading_progressbar()
+        self.show_all()
+        Gtk.main()
+
+    def stop_(self):
+        if  self.window_to_change_sensitive==True:
+            self.window_to_change_sensitive.set_sensitive(True)
+        self.destroy()
+        Gtk.main_quit()
+    
+
+
+
 
 
 class NInfo(Gtk.MessageDialog):
@@ -87,7 +124,12 @@ class MW(Gtk.Window):
         self.all_root_par={}
         self.all_boot_par=[]
         self.all_efi_par=[]
+        self.w = Wait()
+        self.t1 = threading.Thread(target = self.w.start_)
+        self.t1.start()
         self.__get_all()
+        self.w.stop_()
+        
         if self.all_root_btrfs != None:
             self.all_root_par.update(self.all_root_btrfs)
 
@@ -255,65 +297,57 @@ class MW(Gtk.Window):
             if self.boot_target.get_active_text()!="None":
                 efi_legacy += 2
 
-
-        check = self.Yes_Or_No(_("Are you sure do you want continue?"))
+ 
+        check = self.Yes_Or_No()
         if not check:
             return
 
         self.set_sensitive(False)
+
         if efi_legacy==0:
             t1 = threading.Thread(target=self.legacy_root_fix)
-            t1.start()
-            t1.join()
+
 
         elif efi_legacy==2:
             if self.boot_target.get_active_text() == "None":
                 t1 = threading.Thread(target=self.legacy_root_fix)
-                t1.start()
-                t1.join()
+
             else:
                 if self.boot_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
                     NInfo(_("Error Root Target == Boot Target"),self)
                     return
              
                 t1 = threading.Thread(target=self.legacy_root_with_boot_fix)
-                t1.start()
-                t1.join()
 
         elif efi_legacy==3:
             if self.efi_target.get_active_text() == "None":
                 t1 = threading.Thread(target=self.legacy_root_fix)
-                t1.start()
-                t1.join()
+
             else:
                 if self.efi_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
                     NInfo(_("Error Root Target == EFI Target"),self)
                     return
                 t1 = threading.Thread(target=self.efi_root_fix)
-                t1.start()
-                t1.join()
+
 
         elif efi_legacy == 5:
             if self.boot_target.get_active_text() == "None" and  self.efi_target.get_active_text() == "None":
                 t1 = threading.Thread(target=self.legacy_root_fix)
-                t1.start()
-                t1.join()
+
 
             elif self.boot_target.get_active_text() == "None":
                 if self.efi_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
                     NInfo(_("Error Root Target == EFI Target"),self)
                     return
                 t1 = threading.Thread(target=self.efi_root_fix)
-                t1.start()
-                t1.join()
+
 
             elif self.efi_target.get_active_text() == "None":
                 if self.boot_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
                     NInfo(_("Error Root Target == Boot Target"),self)
                     return
                 t1 = threading.Thread(target=self.legacy_root_with_boot_fix)
-                t1.start()
-                t1.join()
+
             else:
                 if self.boot_target.get_active_text().split()[0] == self.root_target.get_active_text().split()[0]:
                     NInfo(_("Error Root Target == Boot Target"),self)
@@ -326,11 +360,10 @@ class MW(Gtk.Window):
                     NInfo(_("Error Boot Target == EFI Target"),self)
                     return    
                 t1 = threading.Thread(target=self.efi_root_with_boot_fix)
-                t1.start()
-                t1.join()
 
-
-
+        t1.start()
+        t1.join()
+        
         if self.check == "d":
             NInfo(_("Done"),self)
         elif self.check == "i":
@@ -955,13 +988,13 @@ class MW(Gtk.Window):
         about.run()
         about.destroy()
 
-    def Yes_Or_No(self,message):
+    def Yes_Or_No(self):
 
         d = Gtk.MessageDialog(parent=self,
                               flags=Gtk.DialogFlags.MODAL,
                               type=Gtk.MessageType.QUESTION,
                               buttons=Gtk.ButtonsType.OK_CANCEL,
-                             message_format=message)
+                             message_format=_("Are you sure do you want continue?"))
         rrun = d.run()
         if rrun == Gtk.ResponseType.OK:
             self.y_o_n = True
